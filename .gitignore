@@ -1,0 +1,8 @@
+/.settings
+/.classpath
+/.project
+/stacktrace.log
+/target
+/data
+*~
+/target-eclipse
