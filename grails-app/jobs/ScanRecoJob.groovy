@@ -20,23 +20,29 @@ class ScanRecoJob {
 	}
 	
 	private def executeYahoo() {
-		def url = "http://fr.finance.yahoo.com/actualites/categorie-actions/"
+		def sourceurl = "http://fr.finance.yahoo.com/actualites/categorie-actions/"
 		
 		def source = Source.findByNom("yahoo")
 		if (source == null) {
-			source = new Source(nom: "yahoo", url: url).save()
+			source = new Source(nom: "yahoo", url: sourceurl).save()
 		}
 		
+		def yqlurl = "http://query.yahooapis.com/v1/public/yql?q="
+		def yqlquery = "select * from html where url=\"http://fr.finance.yahoo.com/actualites/categorie-actions/\" and compat=\"html5\" and xpath=\"//div[@class='txt']\""
+		def url = yqlurl + URLEncoder.encode(yqlquery, "UTF-8")
 		def http = new HTTPBuilder(url)
 		def html = http.get([:])
-		def mediatopstorytemp = html."**".find{it.@id == "mediatopstory_container"}
-		mediatopstorytemp."**".findAll{ it.@class.toString() == "txt" }.eachWithIndex{ div, idiv ->
-			cacheYahooDiv(div, idiv, source)
+
+		def results = html."**".find{it.name() == "results"}
+		results."**".findAll{it.@class == "txt"}.eachWithIndex{ div, idiv ->
+			if (div.a != "" && div.cite != "") {
+				cacheYahooDiv(div, idiv, source)
+			}
 		}
 	}
 	
 	private cacheYahooDiv(def div, int idiv, Source source) {
-		def ago  = div."**".find{it.name() == "CITE"}.text()
+		def ago  = div."**".find{it.name() == "cite"}.text()
 		def h = ago.indexOf("heure")
 		def heures = h < 0 ? 0 : ago[h-3..h-1].toInteger()
 		def min = ago.indexOf("minute")
@@ -45,7 +51,7 @@ class ScanRecoJob {
 		now.add(Calendar.HOUR_OF_DAY, -heures)
 		now.add(Calendar.MINUTE, -minutes)
 		
-		div."**".find{it.name() == "A"}.eachWithIndex{ it, i ->
+		div."**".find{it.name() == "a"}.eachWithIndex{ it, i ->
 			if (grails.util.Environment.current == grails.util.Environment.DEVELOPMENT && idiv<3) {
 				cacheYahooA(it, source, now)
 			}

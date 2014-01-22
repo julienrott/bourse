@@ -92,10 +92,12 @@ class ScanRecoJobUnitTests {
 		def http = new HTTPBuilder(url)
 		def html = http.get([:])
 		assert html instanceof groovy.util.slurpersupport.GPathResult
-		println html
+		//println html
 		def mediatopstory = html."**".find{it.@id == "mediatopstory_container"}
-		mediatopstory."**".findAll{ it.@class.toString() == "txt" }.eachWithIndex{ div, idiv ->
-			div."**".find{it.name() == "A"}.eachWithIndex{ it, i ->
+		//println "mediatopstory: $mediatopstory"
+		mediatopstory."**".findAll{ it.@class == "txt" }.eachWithIndex{ div, idiv ->
+			println "div: $div"
+			div."**".find{it.name() == "a"}.eachWithIndex{ it, i ->
 				println "${idiv + 1} : $it : ${it.@href}"
 			}
 		}
@@ -116,7 +118,17 @@ class ScanRecoJobUnitTests {
 		}
 		//assert html.'//div[@id="mediatopstorytemp"]//ul/li[1]//div[@class="txt"]/span[1]/a'.size() == 1
 	}
-	
+
+	void testContent2() {
+		def http = new HTTPBuilder("http://fr.finance.yahoo.com/actualites/moscovici-esp-plus-1-croissance-092307485.html")
+		def html = http.get([:])
+		assert html instanceof groovy.util.slurpersupport.GPathResult
+		def mediaarticlebody = html."**".find{it.@id == "mediaarticlebody"}
+		mediaarticlebody."**".findAll{ it.name() == "P"}.each{
+			println "$it"
+		}
+	}
+
 	void getContent(String url) {
 		def http = new HTTPBuilder("http://fr.finance.yahoo.com$url")
 		def html = http.get([:])
@@ -129,27 +141,25 @@ class ScanRecoJobUnitTests {
 	
 	void testSomething() {
 		def yqlurl = "http://query.yahooapis.com/v1/public/yql?q="
-		def yqlquery = "select * from html where url=\"http://fr.finance.yahoo.com/actualites/categorie-actions/\" and xpath='//div[@id=\"mediatopstorytemp\"]//ul/li[1]//div[@class=\"txt\"]/span[1]/a'"
+		//def yqlquery = "select * from html where url=\"http://fr.finance.yahoo.com/actualites/categorie-actions/\" and xpath='//div[@id=\"mediatopstorytemp\"]//ul/li[1]//div[@class=\"txt\"]/span[1]/a'"
+		def yqlquery = "select * from html where url=\"http://fr.finance.yahoo.com/actualites/categorie-actions/\" and compat=\"html5\" and xpath=\"//div[@class='txt']\""
 		def url = yqlurl + URLEncoder.encode(yqlquery, "UTF-8")
-		//println "url : $url"
-		//println "yql console : http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Ffr.finance.yahoo.com%2Factualites%2Fcategorie-actions%2F%22%20and%20xpath%3D'%2F%2Fdiv%5B%40id%3D%22mediatopstorytemp%22%5D%2F%2Ful%2Fli%5B1%5D%2F%2Fdiv%5B%40class%3D%22txt%22%5D%2Fspan%5B1%5D%2Fa'&diagnostics=true"
-		//println "yql console : http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Ffr.finance.yahoo.com%2Factualites%2Fcategorie-actions%2F%22%20and%20xpath%3D'%2F%2Fdiv%5B%40id%3D%22mediatopstorytemp%22%5D%2F%2Ful%2Fli%5B1%5D%2F%2Fdiv%5B%40class%3D%22txt%22%5D%2Fspan%5B1%5D%2Fa'&format=json&callback=cbfunc"
-		//assert url == "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Ffr.finance.yahoo.com%2Factualites%2Fcategorie-actions%2F%22%20and%20xpath%3D'%2F%2Fdiv%5B%40id%3D%22mediatopstorytemp%22%5D%2F%2Ful%2Fli%5B1%5D%2F%2Fdiv%5B%40class%3D%22txt%22%5D%2Fspan%5B1%5D%2Fa'&diagnostics=true"
-		//assert url == "http://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url%3D%22http%3A%2F%2Ffr.finance.yahoo.com%2Factualites%2Fcategorie-actions%2F%22%20and%20xpath%3D'%2F%2Fdiv%5B%40id%3D%22mediatopstorytemp%22%5D%2F%2Ful%2Fli%5B1%5D%2F%2Fdiv%5B%40class%3D%22txt%22%5D%2Fspan%5B1%5D%2Fa'&format=json&callback=cbfunc"
 		def http = new HTTPBuilder(url)
 		def html = http.get([:])
+
 		assert html instanceof groovy.util.slurpersupport.GPathResult
-		//assert html."//".results.a.size() == 1
-		html."//".results.a.each {
-			println "${it.name()} - ${it} : ${it.@href}"
+		
+		def results = html."**".find{it.name() == "results"}
+//		results."**".findAll{it.name() == "a" && it.cite != null}.each{
+//			println "${it.name()} - ${it} : ${it.@href}"
+//			println "*******************************************************"
+//		}
+		results."**".findAll{it.@class == "txt"}.each{
+			if (it.a != "" && it.cite != "") {
+				println "${it.name()} - ${it} - ${it.@href} - '${it.cite}' - '${it.a}'"
+				println "*******************************************************"
+			}
 		}
-		/*println html
-		println html.QUERY
-		println html.QUERY.RESULTS.A.size()
-		def xml = new XmlSlurper().parseText(url.toURL().text)
-		println xml.query.results.a.size()
-		println xml
-		println url.toURL().text*/
 	}
 	
 	void testAuthenticatedSite() {
